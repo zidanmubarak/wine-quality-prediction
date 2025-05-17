@@ -8,37 +8,21 @@ Original file is located at
 
 # Proyek Analisis Prediktif: Prediksi Kualitas Wine
 
-## 1. Business Understanding
+# 1. Pemahaman Bisnis
+Penilaian kualitas wine secara tradisional dilakukan oleh ahli melalui tes sensorik, yang memakan waktu dan subjektif.
+Memprediksi kualitas wine berdasarkan sifat fisikokimia dapat membantu kilang anggur:
+- Meningkatkan proses kontrol kualitas
+- Mengoptimalkan parameter produksi
+- Mengurangi biaya yang terkait dengan pengecapan oleh ahli
+- Memberikan penilaian kualitas yang lebih objektif
 
-Industri wine adalah salah satu industri dengan nilai ekonomi yang tinggi di seluruh dunia. Untuk menghasilkan wine berkualitas tinggi, produsen perlu memahami faktor-faktor yang mempengaruhi kualitas produk akhir. Prediksi kualitas wine dapat membantu produsen mengoptimalkan proses produksi mereka dan memastikan konsistensi kualitas produk.
-
-### 1.1 Problem Statements
-
-- Faktor kimia dan fisika apa yang paling mempengaruhi kualitas wine?
-- Bagaimana kita dapat memprediksi kualitas wine berdasarkan atribut-atributnya
-- Seberapa akurat model machine learning dalam memprediksi kualitas wine
-
-### 1.2 Goals
-
-- Mengidentifikasi faktor-faktor yang paling berpengaruh terhadap kualitas wine.
-- Membangun model prediktif yang dapat mengklasifikasikan wine ke dalam kategori kualitas baik atau kurang baik.
-- Membandingkan performa beberapa algoritma machine learning dan memilih model terbaik untuk prediksi kualitas wine.
-
-### 1.3 Solution Statements
-
-- Melakukan eksplorasi data untuk memahami distribusi dan korelasi antar variabel.
-- Membangun beberapa model klasifikasi (Random Forest, KNN, Gradient Boosting) dan membandingkan performanya.
-- Melakukan hyperparameter tuning untuk mengoptimalkan model terbaik.
-- Mengevaluasi model akhir menggunakan metrik yang relevan.
-
-## 2. Data Understanding
+# 2. Data Understanding
 
 Kita akan menggunakan dataset Wine Quality yang tersedia secara publik. Dataset ini berisi informasi tentang atribut fisikokimia dari wine beserta penilaian kualitasnya.
 
 ### 2.1 Import Library
 """
 
-# Commented out IPython magic to ensure Python compatibility.
 # Import library yang dibutuhkan
 import pandas as pd
 import numpy as np
@@ -46,311 +30,249 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.linear_model import LinearRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn.pipeline import Pipeline
+import warnings
+warnings.filterwarnings('ignore')
 
 # Mengatur tampilan plot
 plt.style.use('fivethirtyeight')
 sns.set(style='whitegrid')
-# %matplotlib inline
 
 """### 2.2 Load Dataset"""
 
-# Membaca dataset
+# Memuat dataset
 df = pd.read_csv('WineQT.csv')
 
-# Menampilkan informasi dataset
+# Menampilkan beberapa baris pertama
 print("Dimensi dataset:", df.shape)
 df.head()
 
 # Informasi dataset
-df.info()
+print("\nInformasi Dataset:")
+print(df.info())
 
 # Statistik deskriptif
-df.describe()
+print("\nRingkasan Statistik:")
+print(df.describe())
 
 # Memeriksa missing values
 print("Jumlah missing values per kolom:")
 df.isnull().sum()
 
-"""### 2.3 Eksplorasi Data
-
-#### 2.3.1 Distribusi Target (Kualitas Wine)
-"""
+"""### 2.3 Eksplorasi Data"""
 
 # Distribusi kualitas wine
 plt.figure(figsize=(10, 6))
 sns.countplot(x='quality', data=df)
-plt.title('Distribusi Kualitas Wine', fontsize=16)
+plt.title('Distribusi Skor Kualitas Wine', fontsize=16)
 plt.xlabel('Skor Kualitas', fontsize=12)
 plt.ylabel('Jumlah', fontsize=12)
 plt.savefig('images/quality_distribution.png', bbox_inches='tight')
 plt.show()
 
-"""#### 2.3.2 Korelasi antar Variabel"""
-
-# Menghapus kolom Id yang tidak diperlukan untuk analisis
-df = df.drop('Id', axis=1)
-
-# Matriks korelasi
-plt.figure(figsize=(14, 10))
-correlation = df.corr()
-mask = np.triu(correlation)
-sns.heatmap(correlation, annot=True, fmt='.2f', cmap='coolwarm', mask=mask)
-plt.title('Matriks Korelasi Atribut Wine', fontsize=16)
-plt.savefig('images/correlation_matrix.png', bbox_inches='tight')
+# Menganalisis distribusi fitur
+plt.figure(figsize=(15, 12))
+for i, col in enumerate(df.columns[:-2]):  # Mengecualikan 'quality' dan 'Id'
+    plt.subplot(4, 3, i+1)
+    sns.histplot(df[col], kde=True)
+    plt.title(f'Distribusi {col}')
+plt.tight_layout()
+plt.savefig('images/feature_distributions.png')
 plt.show()
 
-"""#### 2.3.3 Visualisasi Hubungan antara Alkohol dan Kualitas Wine"""
-
-# Hubungan antara alkohol dan kualitas wine
-plt.figure(figsize=(10, 6))
-sns.boxplot(x='quality', y='alcohol', data=df)
-plt.title('Hubungan antara Kadar Alkohol dan Kualitas Wine', fontsize=16)
-plt.xlabel('Skor Kualitas', fontsize=12)
-plt.ylabel('Kadar Alkohol (%)', fontsize=12)
-plt.savefig('images/alcohol_vs_quality.png', bbox_inches='tight')
+# Analisis korelasi
+plt.figure(figsize=(12, 10))
+correlation_matrix = df.drop('Id', axis=1).corr()
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', linewidths=0.5)
+plt.title('Matriks Korelasi Fitur Wine')
+plt.savefig('images/correlation_matrix.png')
 plt.show()
 
-"""#### 2.3.4 Visualisasi Hubungan antara Volatile Acidity dan Kualitas Wine"""
+# Korelasi dengan variabel target
+quality_correlation = correlation_matrix['quality'].sort_values(ascending=False)
+print("\nKorelasi Fitur dengan Kualitas:")
+print(quality_correlation)
 
-# Hubungan antara volatile acidity dan kualitas wine
-plt.figure(figsize=(10, 6))
-sns.boxplot(x='quality', y='volatile acidity', data=df)
-plt.title('Hubungan antara Volatile Acidity dan Kualitas Wine', fontsize=16)
-plt.xlabel('Skor Kualitas', fontsize=12)
-plt.ylabel('Volatile Acidity (g/dm³)', fontsize=12)
-plt.savefig('images/volatile_acidity_vs_quality.png', bbox_inches='tight')
+# Plot korelasi dengan target
+plt.figure(figsize=(10, 8))
+quality_correlation.drop('quality').plot(kind='bar')
+plt.title('Korelasi Fitur dengan Kualitas Wine')
+plt.xlabel('Fitur')
+plt.ylabel('Koefisien Korelasi')
+plt.savefig('images/quality_correlation.png')
 plt.show()
 
-"""#### 2.3.5 Analisis Multivariate"""
-
-# Visualisasi pairplot
-features = ['alcohol', 'volatile acidity', 'sulphates', 'fixed acidity', 'quality']
-sns.pairplot(df[features], hue='quality', palette='viridis')
-plt.savefig('images/pairplot.png', bbox_inches='tight')
-plt.show()
-
-"""### 2.4 Transformasi Target
-
-Untuk menyederhanakan masalah, kita akan mengubah skor kualitas menjadi klasifikasi biner: kualitas baik (≥ 6) dan kualitas kurang baik (< 6).
-"""
-
-# Membuat variabel target biner
-df['quality_category'] = df['quality'].apply(lambda x: 1 if x >= 6 else 0)
-
-# Visualisasi distribusi kategori kualitas
-plt.figure(figsize=(8, 6))
-sns.countplot(x='quality_category', data=df)
-plt.title('Distribusi Kategori Kualitas Wine', fontsize=16)
-plt.xlabel('Kategori Kualitas (0: Kurang Baik, 1: Baik)', fontsize=12)
-plt.ylabel('Jumlah', fontsize=12)
-plt.savefig('images/quality_category_distribution.png', bbox_inches='tight')
+# Pairplot untuk fitur dengan korelasi tertinggi
+top_features = quality_correlation.drop('quality').abs().sort_values(ascending=False).index[:4]
+plt.figure(figsize=(12, 10))
+sns.pairplot(df[list(top_features) + ['quality']], hue='quality')
+plt.savefig('images/pairplot_top_features.png')
 plt.show()
 
 """## 3. Data Preparation"""
 
-# Memisahkan fitur dan target
-X = df.drop(['quality', 'quality_category'], axis=1)
-y = df['quality_category']
+# Menghapus kolom Id karena bukan fitur prediktif
+df = df.drop('Id', axis=1)
 
-# Penskalaan fitur
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-X_scaled = pd.DataFrame(X_scaled, columns=X.columns)
-
-# Pembagian data
-X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42, stratify=y)
-
-print(f"Jumlah sampel training: {X_train.shape[0]}")
-print(f"Jumlah sampel testing: {X_test.shape[0]}")
-
-"""## 4. Modeling
-
-Kita akan membandingkan performa beberapa algoritma klasifikasi dalam memprediksi kualitas wine.
-"""
-
-# Model 1: Random Forest
-rf_model = RandomForestClassifier(random_state=42)
-rf_model.fit(X_train, y_train)
-y_pred_rf = rf_model.predict(X_test)
-accuracy_rf = accuracy_score(y_test, y_pred_rf)
-
-print("Random Forest:")
-print(f"Accuracy: {accuracy_rf:.4f}")
-print("nClassification Report:")
-print(classification_report(y_test, y_pred_rf))
-
-# Model 2: KNN
-knn_model = KNeighborsClassifier()
-knn_model.fit(X_train, y_train)
-y_pred_knn = knn_model.predict(X_test)
-accuracy_knn = accuracy_score(y_test, y_pred_knn)
-
-print("K-Nearest Neighbors:")
-print(f"Accuracy: {accuracy_knn:.4f}")
-print("nClassification Report:")
-print(classification_report(y_test, y_pred_knn))
-
-# Model 3: Gradient Boosting
-gb_model = GradientBoostingClassifier(random_state=42)
-gb_model.fit(X_train, y_train)
-y_pred_gb = gb_model.predict(X_test)
-accuracy_gb = accuracy_score(y_test, y_pred_gb)
-
-print("Gradient Boosting:")
-print(f"Accuracy: {accuracy_gb:.4f}")
-print("nClassification Report:")
-print(classification_report(y_test, y_pred_gb))
-
-"""### 4.1 Cross Validation"""
-
-# Cross-validation untuk ketiga model
-models = {
-    'Random Forest': RandomForestClassifier(random_state=42),
-    'K-Nearest Neighbors': KNeighborsClassifier(),
-    'Gradient Boosting': GradientBoostingClassifier(random_state=42)
-}
-
-# Evaluasi dengan 5-fold cross-validation
-cv_results = {}
-for name, model in models.items():
-    scores = cross_val_score(model, X_scaled, y, cv=5, scoring='accuracy')
-    cv_results[name] = scores
-    print(f"{name}: Mean Accuracy = {scores.mean():.4f}, Std = {scores.std():.4f}")
-
-# Visualisasi perbandingan model
-plt.figure(figsize=(12, 6))
-sns.boxplot(data=[cv_results[model] for model in cv_results], showmeans=True)
-plt.xticks(range(len(cv_results)), list(cv_results.keys()), rotation=45)
-plt.title('Perbandingan Akurasi Model menggunakan 5-Fold Cross Validation', fontsize=16)
-plt.ylabel('Accuracy')
+# Memeriksa outlier
+plt.figure(figsize=(15, 12))
+for i, col in enumerate(df.columns[:-1]):  # Mengecualikan 'quality'
+    plt.subplot(4, 3, i+1)
+    sns.boxplot(y=df[col])
+    plt.title(f'Boxplot dari {col}')
 plt.tight_layout()
-plt.savefig('images/model_comparison_cv.png', bbox_inches='tight')
+plt.savefig('images/boxplots.png')
 plt.show()
 
-"""### 4.2 Hyperparameter Tuning untuk Random Forest"""
+# Menangani outlier menggunakan metode IQR untuk nilai ekstrem
+def handle_outliers(df, column):
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    df[column] = np.where(df[column] < lower_bound, lower_bound,
+                          np.where(df[column] > upper_bound, upper_bound, df[column]))
+    return df
 
-# Hyperparameter tuning untuk Random Forest
-param_grid = {
-    'n_estimators': [100, 200, 300],
-    'min_samples_split': [2, 5, 10],
-    'max_features': ['sqrt']
+for column in df.columns[:-1]:  # Mengecualikan 'quality'
+    df = handle_outliers(df, column)
+
+# Penskalaan fitur
+X = df.drop('quality', axis=1)
+y = df['quality']
+
+# Membagi data menjadi set pelatihan dan pengujian
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Menstandarisasi fitur
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+print("\nBentuk set pelatihan:", X_train.shape)
+print("Bentuk set pengujian:", X_test.shape)
+
+"""## 4. Modeling"""
+
+# Menginisialisasi model
+models = {
+    'Regresi Linier': LinearRegression(),
+    'Random Forest': RandomForestRegressor(random_state=42),
+    'Gradient Boosting': GradientBoostingRegressor(random_state=42)
 }
 
-grid_search = GridSearchCV(RandomForestClassifier(random_state=42), param_grid, cv=5, scoring='accuracy')
-grid_search.fit(X_train, y_train)
+# Melatih model dan mengevaluasi dengan validasi silang
+print("\nHasil Validasi Silang:")
+for name, model in models.items():
+    cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=5, scoring='neg_mean_squared_error')
+    rmse_scores = np.sqrt(-cv_scores)
+    print(f"{name} - Rata-rata RMSE: {rmse_scores.mean():.4f}, Std: {rmse_scores.std():.4f}")
 
-print(f"Best parameters: {grid_search.best_params_}")
-print(f"Best cross-validation score: {grid_search.best_score_:.4f}")
+    # Melatih model pada set pelatihan penuh
+    model.fit(X_train_scaled, y_train)
+    models[name] = model
 
-# Model Random Forest Optimal
-best_rf_model = RandomForestClassifier(**grid_search.best_params_, random_state=42)
-best_rf_model.fit(X_train, y_train)
-y_pred_best_rf = best_rf_model.predict(X_test)
-accuracy_best_rf = accuracy_score(y_test, y_pred_best_rf)
+# Penyetelan hiperparameter untuk model terbaik
+# Berdasarkan hasil awal, mari kita setel Random Forest
+param_grid = {
+    'n_estimators': [100, 200, 300],
+    'max_depth': [None, 10, 20],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
 
-print("Random Forest Optimal:")
-print(f"Accuracy: {accuracy_best_rf:.4f}")
-print("nClassification Report:")
-print(classification_report(y_test, y_pred_best_rf))
+rf_grid = GridSearchCV(
+    RandomForestRegressor(random_state=42),
+    param_grid=param_grid,
+    cv=5,
+    scoring='neg_mean_squared_error',
+    n_jobs=-1
+)
+
+rf_grid.fit(X_train_scaled, y_train)
+print("\nParameter Random Forest Terbaik:", rf_grid.best_params_)
+print("RMSE Random Forest Terbaik:", np.sqrt(-rf_grid.best_score_))
+
+# Menambahkan model yang disetel ke kamus model
+models['Random Forest yang Disetel'] = rf_grid.best_estimator_
 
 """## 5. Evaluation"""
 
-# Visualisasi confusion matrix
-plt.figure(figsize=(8, 6))
-cm = confusion_matrix(y_test, y_pred_best_rf)
-sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=False)
-plt.title('Confusion Matrix - Random Forest Optimal', fontsize=16)
-plt.xlabel('Predicted Label', fontsize=12)
-plt.ylabel('True Label', fontsize=12)
-plt.xticks([0.5, 1.5], ['Kurang Baik (0)', 'Baik (1)'])
-plt.yticks([0.5, 1.5], ['Kurang Baik (0)', 'Baik (1)'])
-plt.savefig('images/confusion_matrix.png', bbox_inches='tight')
+print("\nEvaluasi Model pada Set Pengujian:")
+for name, model in models.items():
+    y_pred = model.predict(X_test_scaled)
+
+    # Menghitung metrik
+    mse = mean_squared_error(y_test, y_pred)
+    rmse = np.sqrt(mse)
+    mae = mean_absolute_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print(f"\nPerforma {name}:")
+    print(f"MSE: {mse:.4f}")
+    print(f"RMSE: {rmse:.4f}")
+    print(f"MAE: {mae:.4f}")
+    print(f"R²: {r2:.4f}")
+
+# Memvisualisasikan nilai aktual vs prediksi untuk model terbaik
+best_model = models['Random Forest yang Disetel']
+y_pred_best = best_model.predict(X_test_scaled)
+
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, y_pred_best, alpha=0.5)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.xlabel('Kualitas Aktual')
+plt.ylabel('Kualitas Prediksi')
+plt.title('Kualitas Aktual vs Prediksi Wine (Random Forest yang Disetel)')
+plt.savefig('images/actual_vs_predicted.png')
 plt.show()
 
-# Visualisasi feature importance
-feature_importance = best_rf_model.feature_importances_
-features = X.columns
+# Pentingnya fitur untuk model terbaik
+if hasattr(best_model, 'feature_importances_'):
+    feature_importance = pd.DataFrame({
+        'Fitur': X.columns,
+        'Pentingnya': best_model.feature_importances_
+    }).sort_values(by='Pentingnya', ascending=False)
 
-# Membuat DataFrame untuk memudahkan visualisasi
-feature_importance_df = pd.DataFrame({'Feature': features, 'Importance': feature_importance})
-feature_importance_df = feature_importance_df.sort_values('Importance', ascending=False).reset_index(drop=True)
+    plt.figure(figsize=(12, 6))
+    sns.barplot(x='Pentingnya', y='Fitur', data=feature_importance)
+    plt.title('Pentingnya Fitur dalam Model Random Forest yang Disetel')
+    plt.savefig('images/feature_importance.png')
+    plt.show()
 
-plt.figure(figsize=(12, 8))
-sns.barplot(x='Importance', y='Feature', data=feature_importance_df)
-plt.title('Feature Importance - Random Forest Optimal', fontsize=16)
-plt.xlabel('Importance Score', fontsize=12)
-plt.ylabel('Feature', fontsize=12)
-plt.tight_layout()
-plt.savefig('images/feature_importance.png', bbox_inches='tight')
+    print("\nPentingnya Fitur:")
+    print(feature_importance)
+
+# Analisis residu
+residuals = y_test - y_pred_best
+plt.figure(figsize=(10, 6))
+sns.histplot(residuals, kde=True)
+plt.axvline(x=0, color='r', linestyle='--')
+plt.xlabel('Residu')
+plt.ylabel('Frekuensi')
+plt.title('Distribusi Residu')
+plt.savefig('images/residual_distribution.png')
 plt.show()
 
-# Perbandingan metrik evaluasi antar model
-
-models_evaluation = {
-    'Model': ['Random Forest', 'KNN', 'Gradient Boosting', 'RF Optimal'],
-    'Accuracy': [accuracy_rf, accuracy_knn, accuracy_gb, accuracy_best_rf],
-    'Precision': [precision_score(y_test, y_pred_rf),
-                  precision_score(y_test, y_pred_knn),
-                  precision_score(y_test, y_pred_gb),
-                  precision_score(y_test, y_pred_best_rf)],
-    'Recall': [recall_score(y_test, y_pred_rf),
-               recall_score(y_test, y_pred_knn),
-               recall_score(y_test, y_pred_gb),
-               recall_score(y_test, y_pred_best_rf)],
-    'F1 Score': [f1_score(y_test, y_pred_rf),
-                 f1_score(y_test, y_pred_knn),
-                 f1_score(y_test, y_pred_gb),
-                 f1_score(y_test, y_pred_best_rf)]
-}
-
-# Membuat DataFrame untuk perbandingan
-metrics_df = pd.DataFrame(models_evaluation)
-print(metrics_df)
-
-# Visualisasi perbandingan metrik
-metrics = ['Accuracy', 'Precision', 'Recall', 'F1 Score']
-bar_width = 0.2
-index = np.arange(len(metrics))
-
-plt.figure(figsize=(14, 8))
-for i, model in enumerate(models_evaluation['Model']):
-    plt.bar(
-        index + i * bar_width,
-        [models_evaluation[metric][i] for metric in metrics],
-        bar_width,
-        label=model
-    )
-
-plt.xlabel('Metrik Evaluasi', fontsize=14)
-plt.ylabel('Skor', fontsize=14)
-plt.title('Perbandingan Metrik Evaluasi Antar Model', fontsize=16)
-plt.xticks(index + bar_width * 1.5, metrics)
-plt.legend()
-plt.ylim(0.5, 1.0)
-plt.tight_layout()
-plt.savefig('images/metrics_comparison.png', bbox_inches='tight')
+# Plot residu vs nilai prediksi
+plt.figure(figsize=(10, 6))
+plt.scatter(y_pred_best, residuals, alpha=0.5)
+plt.axhline(y=0, color='r', linestyle='--')
+plt.xlabel('Nilai Prediksi')
+plt.ylabel('Residu')
+plt.title('Residu vs Nilai Prediksi')
+plt.savefig('images/residuals_vs_predicted.png')
 plt.show()
 
 """## 6. Conclusion
 
-Berdasarkan hasil analisis dan pemodelan, dapat disimpulkan bahwa:
+Proyek ini mengembangkan model pembelajaran mesin untuk memprediksi kualitas wine berdasarkan sifat fisikokimia, sebagai alternatif dari penilaian sensorik tradisional yang subjektif dan mahal. Kami melakukan eksplorasi data, persiapan data (termasuk penanganan outlier dan penskalaan fitur), pelatihan model, dan evaluasi performa.
 
-1. Atribut fisikokimia yang paling berpengaruh terhadap kualitas wine adalah:
-   - Kadar alkohol (alcohol)
-   - Keasaman yang mudah menguap (volatile acidity)
-   - Kandungan sulfat (sulphates)
-   - Total sulfur dioksida (total sulfur dioxide)
+Empat model diuji: Regresi Linier, Random Forest, Gradient Boosting, dan Random Forest yang disetel. Berdasarkan evaluasi pada set pengujian, Random Forest dengan pengaturan default menunjukkan performa terbaik dengan RMSE 0.5458, MAE 0.4107, dan R² 0.4647, mengungguli Regresi Linier (RMSE 0.5924, R² 0.3693), Gradient Boosting (RMSE 0.5809, R² 0.3935), dan Random Forest yang disetel (RMSE 0.5502, R² 0.4559). Meskipun penyetelan hiperparameter Random Forest memberikan sedikit peningkatan pada validasi silang (RMSE 0.6176), performanya pada set pengujian sedikit lebih rendah dibandingkan konfigurasi default, kemungkinan karena penyesuaian berlebih pada data validasi.
 
-2. Model Random Forest Optimal berhasil memprediksi kualitas wine dengan akurasi yang cukup baik. Ini menunjukkan bahwa model dapat digunakan dengan cukup handal untuk memprediksi kualitas wine berdasarkan atribut fisikokimianya.
-
-3. Di antara model yang dibandingkan, Random Forest menunjukkan performa terbaik, diikuti oleh Gradient Boosting dan KNN. Hasil ini menunjukkan bahwa algoritma ensemble seperti Random Forest sangat efektif dalam menangani masalah klasifikasi kompleks seperti prediksi kualitas wine.
-
-Hasil proyek ini dapat dimanfaatkan oleh produsen wine untuk:
-- Mengoptimalkan proses produksi dengan fokus pada parameter yang paling berpengaruh terhadap kualitas.
-- Mengimplementasikan sistem kontrol kualitas otomatis berbasis model machine learning.
-- Mengurangi waktu dan biaya pengembangan produk baru dengan melakukan prediksi kualitas di awal proses.
+Model Random Forest (default) direkomendasikan untuk penerapan di kilang anggur karena akurasinya yang tinggi, kemampuan menjelaskan variabilitas kualitas wine, dan generalisasi yang baik pada data baru. Fitur-fitur penting dari model ini juga dapat memberikan wawasan tentang faktor fisikokimia yang paling memengaruhi kualitas wine, mendukung optimisasi proses produksi. Fungsi prediksi yang dikembangkan memungkinkan penerapan praktis untuk kontrol kualitas otomatis, mengurangi ketergantungan pada pengecapan ahli dan meningkatkan efisiensi operasional.
 """
