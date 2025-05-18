@@ -141,7 +141,7 @@ def handle_outliers(df, column):
 for column in df.columns[:-1]:  # Mengecualikan 'quality'
     df = handle_outliers(df, column)
 
-# Penskalaan fitur
+# Pemisahan fitur dan target
 X = df.drop('quality', axis=1)
 y = df['quality']
 

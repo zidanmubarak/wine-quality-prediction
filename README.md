@@ -194,23 +194,7 @@ Penanganan outlier ini penting karena:
 2. Meningkatkan stabilitas dan generalisasi model, terutama untuk model regresi.
 3. Mengurangi risiko overfitting terhadap nilai-nilai ekstrim.
 
-### 3. Feature Scaling
-
-Standarisasi fitur dilakukan untuk menskalakan semua fitur ke rentang yang sebanding. Hal ini sangat penting terutama ketika fitur-fitur memiliki satuan pengukuran dan rentang nilai yang berbeda-beda, seperti dalam dataset ini.
-
-```python
-# Standarisasi fitur
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-```
-
-Feature scaling dilakukan karena beberapa alasan:
-1. Beberapa algoritma (seperti regresi linear dan gradient boosting) sensitif terhadap skala fitur, dan performa mereka dapat meningkat signifikan dengan fitur yang terskala dengan baik.
-2. Fitur-fitur dalam dataset memiliki satuan dan rentang yang sangat bervariasi (misalnya, pH berkisar 2.7-4.0 sedangkan total sulfur dioxide bisa mencapai ratusan).
-3. Standarisasi membantu algoritma konvergen lebih cepat selama proses training.
-
-### 4. Train-Test Split
+### 3. Train-Test Split
 
 Pemisahan data menjadi set training dan testing adalah langkah penting untuk mengevaluasi performa model pada data yang belum pernah dilihat sebelumnya.
 
@@ -226,6 +210,22 @@ Pemisahan dataset dilakukan dengan rasio 80:20 (80% data training, 20% data test
 1. Memungkinkan evaluasi yang fair terhadap performa model pada data yang belum pernah dilihat.
 2. Membantu mendeteksi masalah overfitting, di mana model memiliki performa baik pada data training namun buruk pada data testing.
 3. Memastikan model yang dikembangkan dapat digeneralisasi ke data baru.
+
+### 4. Feature Scaling
+
+Standarisasi fitur dilakukan untuk menskalakan semua fitur ke rentang yang sebanding. Hal ini sangat penting terutama ketika fitur-fitur memiliki satuan pengukuran dan rentang nilai yang berbeda-beda, seperti dalam dataset ini.
+
+```python
+# Standarisasi fitur
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+```
+
+Feature scaling dilakukan karena beberapa alasan:
+1. Beberapa algoritma (seperti regresi linear dan gradient boosting) sensitif terhadap skala fitur, dan performa mereka dapat meningkat signifikan dengan fitur yang terskala dengan baik.
+2. Fitur-fitur dalam dataset memiliki satuan dan rentang yang sangat bervariasi (misalnya, pH berkisar 2.7-4.0 sedangkan total sulfur dioxide bisa mencapai ratusan).
+3. Standarisasi membantu algoritma konvergen lebih cepat selama proses training.
 
 ## Modeling
 
